@@ -14,7 +14,8 @@ import re
 
 pName = 'Telex'
 pVersion = '0.1'
-pUrl = '...'
+#pUrl = 'https://raw.githubusercontent.com/JellyBitz/phBot-xPlugins/master/JellyDix.py'
+pUrl = 'https://github.com/EzKime/TelexPlugin/blob/main/Telex.py'
 
 # ______________________________ Initializing ______________________________ #
 
