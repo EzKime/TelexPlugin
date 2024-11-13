@@ -37,7 +37,6 @@ isOnline = False
 hasStall = False
 
 telegram_fetch_counter = 0
-telegram_chat_handlers = []
 
 # Graphic user interface
 gui = QtBind.init(__name__,pName)
@@ -786,26 +785,6 @@ def getConsignmentTownText(code):
 		return 'Donwhang'
 	return 'Town #'+str(code)
 
-# Loads all plugins handling chat 
-def GetChatHandlers():
-	import importlib
-	handlers = []
-	# scan files around
-	plugin_name = os.path.basename(__file__)
-	plugin_dir = os.path.dirname(__file__)
-	for path in os.scandir(plugin_dir):
-		# check python files except me
-		if path.is_file() and path.name.endswith(".py") and path.name != plugin_name:
-			try:
-				plugin = importlib.import_module(path.name[:-3])
-				# check if has chat handler
-				if hasattr(plugin,'handle_chat'):
-					handlers.append(getattr(plugin,'handle_chat'))
-					log('Plugin: Loaded telegram handler from '+path.name)
-			except Exception as ex:
-				log('Plugin: Error loading '+path.name+' plugin. '+str(ex))
-	return handlers
-
 # Analyze and extract item information from the index given
 def ParseItem(data,index):
 	rentID = struct.unpack_from('<I', data, index)[0]
@@ -1360,12 +1339,6 @@ def on_telegram_fetch(data):
         if time_difference_seconds <= 10 and (update_id is None or mesajId > update_id):
             update_id = mesajId
             text = message.get('text', '')
-            for handler in telegram_chat_handlers:
-				try:
-					handler(100,'',content)
-				except Exception as ex:
-					# fail silent
-					pass
             on_telegram_message(text, channel_id)
     except Exception as ex:
         log(f"Plugin: Error processing fetched message [{str(ex)}]")
@@ -1417,8 +1390,6 @@ def on_telegram_message(msg, channel_id):
             Notify(channel_id, f'{character_data["name"]} is not in the game {no}')
 
 
-# Plugin loaded
-log('Plugin: '+pName+' v'+pVersion+' successfully loaded')
 
 if not os.path.exists(getPath()):
 	# Creating configs folder
@@ -1427,5 +1398,5 @@ if not os.path.exists(getPath()):
 # Adding RELOAD plugin support
 loadConfigs()
 
-# Load telegram handlers
-telegram_chat_handlers = GetChatHandlers()
+# Plugin loaded
+log('Plugin: '+pName+' v'+pVersion+' successfully loaded')
