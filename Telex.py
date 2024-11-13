@@ -13,11 +13,15 @@ import re
 
 
 pName = 'Telex'
-pVersion = '0.2'
+pVersion = '0.3'
 #pUrl = 'https://raw.githubusercontent.com/JellyBitz/phBot-xPlugins/master/JellyDix.py'
 #video link  https://www.youtube.com/watch?v=LDNRgLq3Tt8
 pUrl = 'https://github.com/EzKime/TelexPlugin/blob/main/Telex.py'
 
+'''
+pVersion = '0.2' Telegram channel support
+pVersion = '0.3' Telegram api requests are set to 3 seconds, fixed issue with adding multiple plugins
+'''
 # ______________________________ Initializing ______________________________ #
 
 URL_HOST = "https://api.telegram.org/bot" # API server
@@ -1317,18 +1321,19 @@ def btnChatId_clicked():
         log(f"Error: {ex}")
 
 # Called every 500ms
+last_fetch_time = 0
+FETCH_INTERVAL = 3
+
 def event_loop():
-	# Check if is in game at first
-	if character_data:
-		# generate fetch stuff
-		global telegram_fetch_counter
-		telegram_fetch_counter += 500
-		# Check if delay is longer to start fetching
-		if telegram_fetch_counter >= TELEGRAM_FETCH_DELAY:
-			telegram_fetch_counter = 0
-			if QtBind.isChecked(gui,cbxTelegram_interactions):
-				# Fetch messages from guild
-				Fetch(QtBind.text(gui,tbxTelegram_guild_id))
+    global last_fetch_time
+    
+    if character_data:
+        current_time = time.time()
+
+        if current_time - last_fetch_time >= FETCH_INTERVAL:
+            last_fetch_time = current_time
+            if QtBind.isChecked(gui, cbxTelegram_interactions):
+                Fetch(QtBind.text(gui, tbxTelegram_guild_id))
 
 # Called everytime telegram has been fetch
 def on_telegram_fetch(data):
@@ -1355,6 +1360,12 @@ def on_telegram_fetch(data):
         if time_difference_seconds <= 10 and (update_id is None or mesajId > update_id):
             update_id = mesajId
             text = message.get('text', '')
+            for handler in telegram_chat_handlers:
+				try:
+					handler(100,'',content)
+				except Exception as ex:
+					# fail silent
+					pass
             on_telegram_message(text, channel_id)
     except Exception as ex:
         log(f"Plugin: Error processing fetched message [{str(ex)}]")
