@@ -13,7 +13,7 @@ import re
 
 
 pName = 'Telex'
-pVersion = '0.1'
+pVersion = '0.2'
 #pUrl = 'https://raw.githubusercontent.com/JellyBitz/phBot-xPlugins/master/JellyDix.py'
 #video link  https://www.youtube.com/watch?v=LDNRgLq3Tt8
 pUrl = 'https://github.com/EzKime/TelexPlugin/blob/main/Telex.py'
@@ -21,7 +21,7 @@ pUrl = 'https://github.com/EzKime/TelexPlugin/blob/main/Telex.py'
 # ______________________________ Initializing ______________________________ #
 
 URL_HOST = "https://api.telegram.org/bot" # API server
-URL_REQUEST_TIMEOUT = 15 # sec
+URL_REQUEST_TIMEOUT = 30 # sec
 TELEGRAM_FETCH_DELAY = 5000 # ms
 
 # Globals
@@ -504,24 +504,20 @@ def ListContains(list,text):
 # Add telegram channel
 def btnAddChannel_clicked():
 	if character_data:
-		channel_id = QtBind.text(gui,tbxChannels)
+		channel_id = QtBind.text(gui, tbxChannels)
 		if not channel_id:
 			return
-		# Check only for numbers
-		if channel_id.isnumeric():
-			# channel it's not empty and not added
-			if not ListContains(QtBind.getItems(gui,lstChannels),channel_id):
-				# Add new channel on everything
-				QtBind.append(gui,lstChannels,channel_id)
-				for name,cmbx in cmbxTriggers.items():
-					QtBind.append(gui,cmbx,channel_id)
-				for name,cmbx in cmbxTriggers_.items():
-					QtBind.append(gui_,cmbx,channel_id)
-				# Clear textbox to indicate success
-				QtBind.setText(gui,tbxChannels,"")
-				log('Plugin: Channel added ['+channel_id+']')
+		if channel_id.lstrip('-').isnumeric():
+			if not ListContains(QtBind.getItems(gui, lstChannels), channel_id):
+				QtBind.append(gui, lstChannels, channel_id)
+				for name, cmbx in cmbxTriggers.items():
+					QtBind.append(gui, cmbx, channel_id)
+				for name, cmbx in cmbxTriggers_.items():
+					QtBind.append(gui_, cmbx, channel_id)
+				QtBind.setText(gui, tbxChannels, "")
+				log(f'Plugin: Channel added [{channel_id}]')
 		else:
-			log('Plugin: Error, the Telegram Channel ID must be a number!')
+			log('Plugin: Error, the Telegram Channel ID must be a valid number (e.g., -100123456789)!')
 
 # Remove telegram channel
 def btnRemChannel_clicked():
@@ -1287,25 +1283,34 @@ def notify_pickup(channel_id,itemID):
 
 def btnChatId_clicked():
     channel_id = QtBind.text(gui, tbxTelegram_guild_id)
-    # Telegram API URL
     url = URL_HOST  
     token = QtBind.text(gui, tbxToken)
     url = f"{url}{token}/getUpdates"
+
     try:
         req = urllib.request.Request(url)
         with urllib.request.urlopen(req, timeout=URL_REQUEST_TIMEOUT) as response:
             data = json.loads(response.read().decode())
 
             if data.get('ok') and len(data.get('result', [])) > 0:
+                last_update = data['result'][-1]
 
-                last_message = data['result'][-1]['message']
-                message_text = last_message.get('text', '').lower()
-                chat_id = last_message['chat'].get('id')
+                message = last_update.get('message') or last_update.get('channel_post')
 
-                if message_text == "/chatid":
-                    log(f"Chat Id: {chat_id}")
+                if message:
+                    message_text = message.get('text', '').lower()
+                    chat_id = message['chat'].get('id')
+                    channelName = message['chat'].get('title')
+
+                    if message_text == "/chatid":
+                        if channelName != None:
+                            log(f"{channelName}: {chat_id}")
+                        else:
+                            log(f"Bot chatId: {chat_id}")
+                    else:
+                        log("The last message is not /chatid.")
                 else:
-                    log("The last message is not /chatid.")
+                    log("No message or channel post found.")
             else:
                 log("No new messages or no data received.")
     except Exception as ex:
@@ -1330,22 +1335,26 @@ def on_telegram_fetch(data):
     if not data:
         return
     global update_id
-    hours = int(QtBind.text(gui,tbxSeconds))
+    hours = int(QtBind.text(gui, tbxSeconds))
     seconds = hours * 60 * 60
     channel_id = QtBind.text(gui, tbxTelegram_guild_id)
     mesajId = data.get('update_id')
-    
+
     try:
-        telegram_timestamp = data['message']['date'] + seconds
+        message = data.get('message')
+        if not message:
+            return
+
+        telegram_timestamp = message['date'] + seconds
         telegramTime = datetime.utcfromtimestamp(telegram_timestamp)
 
         pcTime = datetime.now()
-        time_difference = pcTime - telegramTime        
+        time_difference = pcTime - telegramTime
         time_difference_seconds = time_difference.total_seconds()
-        
+
         if time_difference_seconds <= 10 and (update_id is None or mesajId > update_id):
             update_id = mesajId
-            text = data['message'].get('text', '')
+            text = message.get('text', '')
             on_telegram_message(text, channel_id)
     except Exception as ex:
         log(f"Plugin: Error processing fetched message [{str(ex)}]")
