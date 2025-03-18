@@ -21,7 +21,7 @@ pUrl = 'https://github.com/EzKime/TelexPlugin/blob/main/Telex.py'
 
 '''
 pVersion = '0.2' Telegram channel support
-pVersion = '0.3' Telegram api requests are set to 5 seconds.
+pVersion = '0.3' Telegram api requests are set to 7 seconds.
 pVersion = '0.4' It is now possible to send a message from a telegram. How it works: Sender Recipient Message. Example {Ryan Joymax How are you? :)}
 '''
 # ______________________________ Initializing ______________________________ #
