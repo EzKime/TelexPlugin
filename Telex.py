@@ -2,6 +2,7 @@ from phBot import *
 import QtBind
 from datetime import datetime
 from threading import Timer
+import urllib.error
 import urllib.request
 import urllib.parse
 import struct
@@ -9,24 +10,28 @@ import json
 import time
 import os
 import re
-
+import phBotChat
 
 
 pName = 'Telex'
-pVersion = '0.3'
+pVersion = '0.4'
 #pUrl = 'https://raw.githubusercontent.com/JellyBitz/phBot-xPlugins/master/JellyDix.py'
 #video link  https://www.youtube.com/watch?v=LDNRgLq3Tt8
 pUrl = 'https://github.com/EzKime/TelexPlugin/blob/main/Telex.py'
 
 '''
 pVersion = '0.2' Telegram channel support
-pVersion = '0.3' Telegram api requests are set to 3 seconds, fixed issue with adding multiple plugins
+pVersion = '0.3' Telegram api requests are set to 5 seconds.
+pVersion = '0.4' It is now possible to send a message from a telegram. How it works: Sender Recipient Message. Example {Ryan Joymax How are you? :)}
 '''
 # ______________________________ Initializing ______________________________ #
 
 URL_HOST = "https://api.telegram.org/bot" # API server
-URL_REQUEST_TIMEOUT = 30 # sec
-TELEGRAM_FETCH_DELAY = 5000 # ms
+URL_REQUEST_TIMEOUT = 30 # seconds
+
+# Called every 500ms
+LAST_FETCH_TIME = 0
+TELEGRAM_FETCH_DELAY = 7 # Sorulan sorulari cevaplama suresi
 
 # Globals
 character_data = None
@@ -37,6 +42,7 @@ isOnline = False
 hasStall = False
 
 telegram_fetch_counter = 0
+telegram_chat_handlers = []
 
 # Graphic user interface
 gui = QtBind.init(__name__,pName)
@@ -626,6 +632,7 @@ def Fetch(guild_id):
 # Fetch messages on telegram (queue) from the guild server indicated
 def _Fetch(guild_id):
     # Check if there is enough data to fetch
+
     if not guild_id or not guild_id.isnumeric():
         return
 
@@ -633,24 +640,26 @@ def _Fetch(guild_id):
     url = f"{URL_HOST}{token}/getUpdates"
 
     try:
-        # Prepare the request to Telegram API
         req = urllib.request.Request(url)
+
         with urllib.request.urlopen(req, timeout=URL_REQUEST_TIMEOUT) as f:
             try:
-                # Parse the response from the server
                 resp = json.loads(f.read().decode())
 
-                # API yanıtını kontrol et
-                if resp and resp.get("ok") and len(resp.get("result", [])) > 0:
-                    # En son gelen mesajı al
-                    last_message = resp['result'][-1]
-                    on_telegram_fetch(last_message)
-                else:
-                    log("Plugin: Fetch failed with error from Telegram API.")
+                
+                if resp and resp.get("ok"):
+                                        
+                    result = resp.get("result", [])
+                    if result:
+                        last_message = result[-1]
+                        on_telegram_fetch(last_message)
             except Exception as ex2:
                 log(f"Plugin: Error reading response from Telegram API [{str(ex2)}]")
+    except urllib.error.URLError as e:
+        log(f"Plugin: URLError {e.reason} - Check internet connection or API accessibility.")
     except Exception as ex:
         log(f"Plugin: Error loading URL [{str(ex)}] for Telegram Fetch")
+    
 
 # Check if character is ingame
 def isJoined():
@@ -719,19 +728,18 @@ def getGuildTextList(guild):
 def inventory(env):
 
     # Envanter bilgilerini formatla
-    txt = '```\n'
+    txt = '\n'
     txt += f"\U0001F4BC : {env['size']}".ljust(25) + f"\U0001F4B0: {env['gold']:,}\n\n"
 
     for item in env['items']:
-        if item:  # Bu kontrol None veya boş olmayanları işler
+        if item and "Recovery" not in item['name'] and "stone" not in item['name'] and "scroll" not in item['name']:  # Eğer item None değilse ve "recovery" içermiyorsa
             # Name + padding
-            txt += item['name'].ljust(1)+"-"
+            txt += item['name'].ljust(1) + "-"
             # Quantity + padding
-            txt += f"Quantity: {item['quantity']}".ljust(1)+"-"
+            txt += f"Quantity: {item['quantity']}".ljust(1) + "-"
             # Plus + padding
-            txt += f"Plus: {item['plus']}".ljust(10) +"\n\n"
+            txt += f"Plus: {item['plus']}".ljust(10) + "\n\n"
 
-    txt += '```'
     return txt
 # Returns the current gold as text
 def getGoldText():
@@ -784,6 +792,26 @@ def getConsignmentTownText(code):
 	if code == 1:
 		return 'Donwhang'
 	return 'Town #'+str(code)
+
+# Loads all plugins handling chat 
+def GetChatHandlers():
+	import importlib
+	handlers = []
+	# scan files around
+	plugin_name = os.path.basename(__file__)
+	plugin_dir = os.path.dirname(__file__)
+	for path in os.scandir(plugin_dir):
+		# check python files except me
+		if path.is_file() and path.name.endswith(".py") and path.name != plugin_name:
+			try:
+				plugin = importlib.import_module(path.name[:-3])
+				# check if has chat handler
+				if hasattr(plugin,'handle_chat'):
+					handlers.append(getattr(plugin,'handle_chat'))
+					log('Plugin: Loaded telegram handler from '+path.name)
+			except Exception as ex:
+				log('Plugin: Error loading '+path.name+' plugin. '+str(ex))
+	return handlers
 
 # Analyze and extract item information from the index given
 def ParseItem(data,index):
@@ -1175,20 +1203,26 @@ def handle_joymax(opcode, data):
 				Notify(channel_id,"|`"+character_data['name']+"`| `"+playerName+"` bought an item from your stall\n```Your gold now: "+getGoldText()+"```")
 	# SERVER_CHAT_ITEM_DATA
 	elif opcode == 0xB504:
-		global chat_data
-		index = 2
-		for i in range(data[1]):
-			uid = struct.unpack_from('<I', data, index)[0]
-			index += 4 # Unique ID
-			try:
-				index, item = ParseItem(data,index)
-				chat_data[uid] = item
-			except Exception as ex:
-				log('Plugin: Saving error parsing item (Telex)...')
-				# Make easy log file for user
-				with open(getPath()+"error.log","a") as f:
-					f.write("["+str(ex)+"] Server: (Opcode) 0x" + '{:02X}'.format(opcode) + " (Data) "+ ("None" if not data else ' '.join('{:02X}'.format(x) for x in data))+'\r\n')
-				break
+	    global chat_data
+	    index = 2
+	    for i in range(data[1]):
+	        uid = struct.unpack_from('<I', data, index)[0]
+	        index += 4  # Unique ID
+	        try:
+	            parsed_result = ParseItem(data, index)
+	            if not parsed_result:  # Eğer None veya False dönerse, loglayıp devam et
+	                #log(f'Plugin: ParseItem failed for UID {uid}, skipping...')
+	                continue
+	
+	            index, item = parsed_result  # Eğer burada hata olursa direkt yakalarız
+	            chat_data[uid] = item
+	        except Exception as ex:
+	            #log(f'Plugin: Saving error {ex} parsing item (Telex)...')
+	            with open(getPath() + "error.log", "a") as f:
+	                f.write("[" + str(ex) + "] Server: (Opcode) 0x" + '{:02X}'.format(opcode) +
+	                        " (Data) " + ("None" if not data else ' '.join('{:02X}'.format(x) for x in data)) + '\r\n')
+	            break
+
 	# GUILD_INFO_UPDATE
 	elif opcode == 0x38F5:
 		updateType = data[0]
@@ -1299,18 +1333,16 @@ def btnChatId_clicked():
     except Exception as ex:
         log(f"Error: {ex}")
 
-# Called every 500ms
-last_fetch_time = 0
-FETCH_INTERVAL = 3
+
 
 def event_loop():
-    global last_fetch_time
+    global LAST_FETCH_TIME
     
     if character_data:
         current_time = time.time()
-
-        if current_time - last_fetch_time >= FETCH_INTERVAL:
-            last_fetch_time = current_time
+        
+        if current_time - LAST_FETCH_TIME >= TELEGRAM_FETCH_DELAY:
+            LAST_FETCH_TIME = current_time
             if QtBind.isChecked(gui, cbxTelegram_interactions):
                 Fetch(QtBind.text(gui, tbxTelegram_guild_id))
 
@@ -1339,6 +1371,12 @@ def on_telegram_fetch(data):
         if time_difference_seconds <= 10 and (update_id is None or mesajId > update_id):
             update_id = mesajId
             text = message.get('text', '')
+            for handler in telegram_chat_handlers:
+                try:
+                    handler(100,'',content)
+                except Exception as ex:
+                    # fail silent
+                    pass
             on_telegram_message(text, channel_id)
     except Exception as ex:
         log(f"Plugin: Error processing fetched message [{str(ex)}]")
@@ -1346,11 +1384,32 @@ def on_telegram_fetch(data):
 
 # Called everytime a telegram message is sent to bot
 def on_telegram_message(msg, channel_id):
+    words = msg.split(maxsplit=2)
+    charName = character_data.get('name', '')
+    
+    if len(words) > 2 and words[0] == charName:
+        receiver = words[1]
+        message = words[2] if len(words) > 2 else ""
+        
+        if receiver.strip():
+            send = phBotChat.Private(receiver, message)
+            
+            if send:
+                Notify(channel_id, ' ' +  f"Message sent successfully: {receiver} → {message}")
+            else:
+                log("Message sending failed!")
+        else:
+            log("Recipient name empty, message failed to send.")
+    else:
+        log("Invalid message format: Must be at least two words!")
+        
     msgLower = msg.lower()
     msgLower = msgLower[1:].rstrip()
-    if msgLower == 'position':
+
+    if msgLower == 'position': 
         p = get_position()
-        Notify(channel_id, '|`' + character_data['name'] + '`| - Your actual position is\n \U0001F4CD  X:%.1f, Y:%.1f,\n  \U0001F30D Region:%d' % (p['x'], p['y'], p['region']), CreateInfo('position', p))
+        Notify(channel_id, '|`%s`| - Your actual position is\n📍 X:%.1f, Y:%.1f,\n🌍 Region: %s' % (character_data['name'], p['x'], p['y'], get_zone_name(p['region'])))
+
     elif msgLower == 'party':
         party = get_party()
         if party:
@@ -1390,6 +1449,8 @@ def on_telegram_message(msg, channel_id):
             Notify(channel_id, f'{character_data["name"]} is not in the game {no}')
 
 
+# Plugin loaded
+log('Plugin: '+pName+' v'+pVersion+' successfully loaded')
 
 if not os.path.exists(getPath()):
 	# Creating configs folder
@@ -1398,5 +1459,5 @@ if not os.path.exists(getPath()):
 # Adding RELOAD plugin support
 loadConfigs()
 
-# Plugin loaded
-log('Plugin: '+pName+' v'+pVersion+' successfully loaded')
+# Load telegram handlers
+# telegram_chat_handlers = GetChatHandlers()
