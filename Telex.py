@@ -14,15 +14,16 @@ import phBotChat
 
 
 pName = 'Telex'
-pVersion = '0.4'
+pVersion = '0.5'
 #pUrl = 'https://raw.githubusercontent.com/JellyBitz/phBot-xPlugins/master/JellyDix.py'
 #video link  https://www.youtube.com/watch?v=LDNRgLq3Tt8
 pUrl = 'https://github.com/EzKime/TelexPlugin/blob/main/Telex.py'
 
 '''
 pVersion = '0.2' Telegram channel support
-pVersion = '0.3' Telegram api requests are set to 7 seconds.
+pVersion = '0.3' Telegram api requests are set to 5 seconds.
 pVersion = '0.4' It is now possible to send a message from a telegram. How it works: Sender Recipient Message. Example {Ryan Joymax How are you? :)}
+pVersion = '0.5' Private Message Status Update}
 '''
 # ______________________________ Initializing ______________________________ #
 
@@ -39,8 +40,11 @@ party_data = None
 update_id = None
 chat_data = {}
 isOnline = False
+aktif = False
 hasStall = False
-
+sent = True
+yes = '\u2705'
+no = '\u274C'
 telegram_fetch_counter = 0
 telegram_chat_handlers = []
 
@@ -356,7 +360,8 @@ def loadConfigs():
 
 		# Connection status
 		global isOnline
-		isOnline = True
+		if aktif:
+			isOnline = True
         
 		# Check config exists to load
 		if os.path.exists(getConfig()):
@@ -894,14 +899,19 @@ def Telex(args):
 
 # Called when the character enters the game world
 def joined_game():
+	global aktif
+	aktif = True
 	loadConfigs()
 	Notify(QtBind.text(gui,cmbxEvtChar_joined),"|`"+character_data['name']+"`| - Joined to the game")
 
 # Called when the character has been disconnected
 def disconnected():
 	global isOnline
+	global aktif
+	
 	if isOnline:
 		isOnline = False
+		aktif = False
 		channel_id = QtBind.text(gui,cmbxEvtChar_disconnected)
 		if channel_id:
 			Notify(channel_id,"|`"+character_data['name']+"`| You has been disconnected")
@@ -1004,8 +1014,8 @@ def handle_event(t, data):
 # Returning True will keep the packet and False will not forward it to the game client
 def handle_joymax(opcode, data):
 	# globals used in more than one IF statement
-	global party_data,hasStall
-
+	global party_data,hasStall,sent
+    
 	# SERVER_NOTICE_UPDATE
 	if opcode == 0x300C:
 		updateType = data[0]
@@ -1254,6 +1264,14 @@ def handle_joymax(opcode, data):
 					textLength = struct.unpack_from('<H', data,index)[0]
 					text = struct.unpack_from('<' + str(textLength) + 's', data, index+2)[0].decode('cp1252')
 					Notify(channel_id,"|`"+character_data['name']+"`| Guild notice updated : **`"+title+"`**\n"+text)
+	
+	elif opcode == 0xB025:
+		if len(data) > 0:
+			if data[0] == 1:
+				sent = True
+			elif data[0] == 2:
+				sent = False
+    
 	return True
 
 # All picked up items are sent to this function (only vSRO working at the moment) 
@@ -1384,6 +1402,7 @@ def on_telegram_fetch(data):
 
 # Called everytime a telegram message is sent to bot
 def on_telegram_message(msg, channel_id):
+    global sent
     words = msg.split(maxsplit=2)
     charName = character_data.get('name', '')
     
@@ -1392,12 +1411,14 @@ def on_telegram_message(msg, channel_id):
         message = words[2] if len(words) > 2 else ""
         
         if receiver.strip():
+            sent = True
             send = phBotChat.Private(receiver, message)
-            
-            if send:
-                Notify(channel_id, ' ' +  f"Message sent successfully: {receiver} → {message}")
+            time.sleep(0.5)
+
+            if send and sent:
+                Notify(channel_id, f"{yes} Mesaj gönderildi: {receiver} → {message}")
             else:
-                log("Message sending failed!")
+                Notify(channel_id, f"{no} Mesaj gönderilemedi: {receiver} → {message}")
         else:
             log("Recipient name empty, message failed to send.")
     else:
@@ -1441,8 +1462,7 @@ def on_telegram_message(msg, channel_id):
         Notify(channel_id, '|`' + character_data['name'] + '`| - Your current exp is %.2f' % percentExp)
     elif msgLower == 'online':
         in_Game = isOnline
-        yes = '\u2705'
-        no = '\u274C'
+
         if in_Game:
             Notify(channel_id, f'{character_data["name"]} is in the game {yes}')
         else:
@@ -1458,6 +1478,6 @@ if not os.path.exists(getPath()):
 	log('Plugin: '+pName+' folder has been created')
 # Adding RELOAD plugin support
 loadConfigs()
-
+#joined_game()
 # Load telegram handlers
 # telegram_chat_handlers = GetChatHandlers()
