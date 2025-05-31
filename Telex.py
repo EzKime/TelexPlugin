@@ -23,7 +23,7 @@ pUrl = 'https://github.com/EzKime/TelexPlugin/blob/main/Telex.py'
 pVersion = '0.2' Telegram channel support
 pVersion = '0.3' Telegram api requests are set to 5 seconds.
 pVersion = '0.4' It is now possible to send a message from a telegram. How it works: Sender Recipient Message. Example {Ryan Joymax How are you? :)}
-pVersion = '0.5' Private Message Status Update}
+pVersion = '0.5' Private Message Status Update
 '''
 # ______________________________ Initializing ______________________________ #
 
@@ -1416,9 +1416,9 @@ def on_telegram_message(msg, channel_id):
             time.sleep(0.5)
 
             if send and sent:
-                Notify(channel_id, f"{yes} Mesaj gönderildi: {receiver} → {message}")
+                Notify(channel_id, f"{yes} Message delivered: {receiver} → {message}")
             else:
-                Notify(channel_id, f"{no} Mesaj gönderilemedi: {receiver} → {message}")
+                Notify(channel_id, f"{no} Message not delivered: {receiver} → {message}")
         else:
             log("Recipient name empty, message failed to send.")
     else:
