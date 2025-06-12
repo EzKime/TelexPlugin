@@ -14,7 +14,7 @@ import phBotChat
 
 
 pName = 'Telex'
-pVersion = '0.5'
+pVersion = '0.6'
 #pUrl = 'https://raw.githubusercontent.com/JellyBitz/phBot-xPlugins/master/JellyDix.py'
 #video link  https://www.youtube.com/watch?v=LDNRgLq3Tt8
 pUrl = 'https://github.com/EzKime/TelexPlugin/blob/main/Telex.py'
@@ -24,6 +24,7 @@ pVersion = '0.2' Telegram channel support
 pVersion = '0.3' Telegram api requests are set to 5 seconds.
 pVersion = '0.4' It is now possible to send a message from a telegram. How it works: Sender Recipient Message. Example {Ryan Joymax How are you? :)}
 pVersion = '0.5' Private Message Status Update
+pVersion = '0.6' Long messages now auto-split; 100+ chars can be sent easily.
 '''
 # ______________________________ Initializing ______________________________ #
 
@@ -1408,22 +1409,31 @@ def on_telegram_message(msg, channel_id):
     
     if len(words) > 2 and words[0] == charName:
         receiver = words[1]
-        message = words[2] if len(words) > 2 else ""
-        
+        message = words[2]
+    
         if receiver.strip():
-            sent = True
-            send = phBotChat.Private(receiver, message)
-            time.sleep(0.5)
-
-            if send and sent:
-                Notify(channel_id, f"{yes} Message delivered: {receiver} → {message}")
+            max_length = 99
+            all_sent = True
+            sn = 2
+            for i in range(0, len(message), max_length):
+                sn += 1
+                part = message[i:i + max_length]
+                log(f'{part}')
+                log(f'{sn}')
+                sent = phBotChat.Private(receiver, part)
+                if not sent:
+                    all_sent = False
+                time.sleep(sn)
+    
+            if all_sent:
+                Notify(channel_id, f"{yes} Message delivered: {receiver}")
             else:
-                Notify(channel_id, f"{no} Message not delivered: {receiver} → {message}")
+                Notify(channel_id, f"{no} Some parts failed to deliver: {receiver}")
         else:
             log("Recipient name empty, message failed to send.")
     else:
         log("Invalid message format: Must be at least two words!")
-        
+
     msgLower = msg.lower()
     msgLower = msgLower[1:].rstrip()
 
