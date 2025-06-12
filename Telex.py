@@ -1418,8 +1418,6 @@ def on_telegram_message(msg, channel_id):
             for i in range(0, len(message), max_length):
                 sn += 1
                 part = message[i:i + max_length]
-                log(f'{part}')
-                log(f'{sn}')
                 sent = phBotChat.Private(receiver, part)
                 if not sent:
                     all_sent = False
