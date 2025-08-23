@@ -14,7 +14,7 @@ import phBotChat
 
 
 pName = 'Telex'
-pVersion = '0.6'
+pVersion = '0.7'
 #pUrl = 'https://raw.githubusercontent.com/JellyBitz/phBot-xPlugins/master/JellyDix.py'
 #video link  https://www.youtube.com/watch?v=LDNRgLq3Tt8
 pUrl = 'https://github.com/EzKime/TelexPlugin/blob/main/Telex.py'
@@ -25,6 +25,7 @@ pVersion = '0.3' Telegram api requests are set to 5 seconds.
 pVersion = '0.4' It is now possible to send a message from a telegram. How it works: Sender Recipient Message. Example {Ryan Joymax How are you? :)}
 pVersion = '0.5' Private Message Status Update
 pVersion = '0.6' Long messages now auto-split; 100+ chars can be sent easily.
+pVersion = '0.7' The error in the feedback has been corrected. Global messaging feature added..
 '''
 # ______________________________ Initializing ______________________________ #
 
@@ -33,7 +34,7 @@ URL_REQUEST_TIMEOUT = 30 # seconds
 
 # Called every 500ms
 LAST_FETCH_TIME = 0
-TELEGRAM_FETCH_DELAY = 7 # Sorulan sorulari cevaplama suresi
+TELEGRAM_FETCH_DELAY = 10 # Sorulan sorulari cevaplama suresi
 
 # Globals
 character_data = None
@@ -47,7 +48,6 @@ sent = True
 yes = '\u2705'
 no = '\u274C'
 telegram_fetch_counter = 0
-telegram_chat_handlers = []
 
 # Graphic user interface
 gui = QtBind.init(__name__,pName)
@@ -597,7 +597,6 @@ def _Notify(channel_id, message, info=None, colour=None):
         
         # Create the URL for the Telegram API request
         url = f"{url}{token}/sendMessage"
-        
         # Prepare the request data
         data = {
             "chat_id": channel_id,
@@ -798,26 +797,6 @@ def getConsignmentTownText(code):
 	if code == 1:
 		return 'Donwhang'
 	return 'Town #'+str(code)
-
-# Loads all plugins handling chat 
-def GetChatHandlers():
-	import importlib
-	handlers = []
-	# scan files around
-	plugin_name = os.path.basename(__file__)
-	plugin_dir = os.path.dirname(__file__)
-	for path in os.scandir(plugin_dir):
-		# check python files except me
-		if path.is_file() and path.name.endswith(".py") and path.name != plugin_name:
-			try:
-				plugin = importlib.import_module(path.name[:-3])
-				# check if has chat handler
-				if hasattr(plugin,'handle_chat'):
-					handlers.append(getattr(plugin,'handle_chat'))
-					log('Plugin: Loaded telegram handler from '+path.name)
-			except Exception as ex:
-				log('Plugin: Error loading '+path.name+' plugin. '+str(ex))
-	return handlers
 
 # Analyze and extract item information from the index given
 def ParseItem(data,index):
@@ -1322,7 +1301,7 @@ def btnChatId_clicked():
     url = URL_HOST  
     token = QtBind.text(gui, tbxToken)
     url = f"{url}{token}/getUpdates"
-
+    
     try:
         req = urllib.request.Request(url)
         with urllib.request.urlopen(req, timeout=URL_REQUEST_TIMEOUT) as response:
@@ -1351,8 +1330,6 @@ def btnChatId_clicked():
                 log("No new messages or no data received.")
     except Exception as ex:
         log(f"Error: {ex}")
-
-
 
 def event_loop():
     global LAST_FETCH_TIME
@@ -1390,45 +1367,46 @@ def on_telegram_fetch(data):
         if time_difference_seconds <= 10 and (update_id is None or mesajId > update_id):
             update_id = mesajId
             text = message.get('text', '')
-            for handler in telegram_chat_handlers:
-                try:
-                    handler(100,'',content)
-                except Exception as ex:
-                    # fail silent
-                    pass
+
             on_telegram_message(text, channel_id)
     except Exception as ex:
         log(f"Plugin: Error processing fetched message [{str(ex)}]")
 
 
 # Called everytime a telegram message is sent to bot
+def send_message(receiver, message, send_func, channel_id):
+    if not receiver.strip():
+        log("Recipient name empty, message failed to send.")
+        return
+    
+    max_length = 99
+    all_sent = True
+    sn = 2
+    for i in range(0, len(message), max_length):
+        sn += 1
+        part = message[i:i + max_length]
+        send_func(part) if receiver == 'Global' else send_func(receiver, part)
+        time.sleep(sn)
+        if not sent:
+            all_sent = False
+
+    if all_sent:
+        Notify(channel_id, f"{yes} Message delivered: {receiver}")
+    else:
+        Notify(channel_id, f"{no} Some parts failed to deliver: {receiver}")
+
+
 def on_telegram_message(msg, channel_id):
     global sent
     words = msg.split(maxsplit=2)
     charName = character_data.get('name', '')
-    
+
     if len(words) > 2 and words[0] == charName:
-        receiver = words[1]
-        message = words[2]
-    
-        if receiver.strip():
-            max_length = 99
-            all_sent = True
-            sn = 2
-            for i in range(0, len(message), max_length):
-                sn += 1
-                part = message[i:i + max_length]
-                sent = phBotChat.Private(receiver, part)
-                if not sent:
-                    all_sent = False
-                time.sleep(sn)
-    
-            if all_sent:
-                Notify(channel_id, f"{yes} Message delivered: {receiver}")
-            else:
-                Notify(channel_id, f"{no} Some parts failed to deliver: {receiver}")
+        receiver, message = words[1], words[2]
+        if receiver == 'Global':
+            send_message(receiver, message, phBotChat.Global, channel_id)
         else:
-            log("Recipient name empty, message failed to send.")
+            send_message(receiver, message, phBotChat.Private, channel_id)
     else:
         log("Invalid message format: Must be at least two words!")
 
@@ -1487,5 +1465,5 @@ if not os.path.exists(getPath()):
 # Adding RELOAD plugin support
 loadConfigs()
 #joined_game()
-# Load telegram handlers
-# telegram_chat_handlers = GetChatHandlers()
+
+
