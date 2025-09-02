@@ -14,7 +14,7 @@ import phBotChat
 
 
 pName = 'Telex'
-pVersion = '0.7'
+pVersion = '0.8'
 #pUrl = 'https://raw.githubusercontent.com/JellyBitz/phBot-xPlugins/master/JellyDix.py'
 #video link  https://www.youtube.com/watch?v=LDNRgLq3Tt8
 pUrl = 'https://github.com/EzKime/TelexPlugin/blob/main/Telex.py'
@@ -26,6 +26,7 @@ pVersion = '0.4' It is now possible to send a message from a telegram. How it wo
 pVersion = '0.5' Private Message Status Update
 pVersion = '0.6' Long messages now auto-split; 100+ chars can be sent easily.
 pVersion = '0.7' The error in the feedback has been corrected. Global messaging feature added..
+pVersion = '0.8' In private messages, you can copy and paste the sender and recipient names (e.g., Ryan Joymax) and then write your message. Currently, this is the fastest way to reply.
 '''
 # ______________________________ Initializing ______________________________ #
 
@@ -918,6 +919,7 @@ def handle_chat(t,player,msg):
 		Notify(QtBind.text(gui_,cmbxEvtMessage_all),"|`"+character_data['name']+"`| - [**General**] from `"+player+"`: "+msg)
 	elif t == 2:
 		Notify(QtBind.text(gui_,cmbxEvtMessage_private),"|`"+character_data['name']+"`| - [**Private**] from `"+player+"`: "+msg)
+		Notify(QtBind.text(gui_,cmbxEvtMessage_stall),character_data['name']+" "+player + "\u00A0")
 	elif t == 9:
 		Notify(QtBind.text(gui_,cmbxEvtMessage_stall),"|`"+character_data['name']+"`| - [**Stall**] from `"+player+"`: "+msg)
 	elif t == 4:
@@ -1456,6 +1458,7 @@ def on_telegram_message(msg, channel_id):
 
 
 # Plugin loaded
+QtBind.createLabel(gui, '🐱‍👤 By <s>EzKime</s> v.{}</s>'.format(pVersion), 610, 297)
 log('Plugin: '+pName+' v'+pVersion+' successfully loaded')
 
 if not os.path.exists(getPath()):
