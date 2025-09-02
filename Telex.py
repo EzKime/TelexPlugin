@@ -919,7 +919,7 @@ def handle_chat(t,player,msg):
 		Notify(QtBind.text(gui_,cmbxEvtMessage_all),"|`"+character_data['name']+"`| - [**General**] from `"+player+"`: "+msg)
 	elif t == 2:
 		Notify(QtBind.text(gui_,cmbxEvtMessage_private),"|`"+character_data['name']+"`| - [**Private**] from `"+player+"`: "+msg)
-		Notify(QtBind.text(gui_,cmbxEvtMessage_stall),character_data['name']+" "+player + "\u00A0")
+		Notify(QtBind.text(gui_,cmbxEvtMessage_private),character_data['name']+" "+player + "\u00A0")
 	elif t == 9:
 		Notify(QtBind.text(gui_,cmbxEvtMessage_stall),"|`"+character_data['name']+"`| - [**Stall**] from `"+player+"`: "+msg)
 	elif t == 4:
