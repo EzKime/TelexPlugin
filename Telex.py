@@ -14,7 +14,7 @@ import phBotChat
 
 
 pName = 'Telex'
-pVersion = '0.8'
+pVersion = '0.8.1'
 #pUrl = 'https://raw.githubusercontent.com/JellyBitz/phBot-xPlugins/master/JellyDix.py'
 #video link  https://www.youtube.com/watch?v=LDNRgLq3Tt8
 pUrl = 'https://github.com/EzKime/TelexPlugin/blob/main/Telex.py'
@@ -27,6 +27,7 @@ pVersion = '0.5' Private Message Status Update
 pVersion = '0.6' Long messages now auto-split; 100+ chars can be sent easily.
 pVersion = '0.7' The error in the feedback has been corrected. Global messaging feature added..
 pVersion = '0.8' In private messages, you can copy and paste the sender and recipient names (e.g., Ryan Joymax) and then write your message. Currently, this is the fastest way to reply.
+pVersion = '0.8.1' In stall messages,"Private message can be sent." you can copy and paste the sender and recipient names (e.g., Ryan Joymax) and then write your message. Currently, this is the fastest way to reply.
 '''
 # ______________________________ Initializing ______________________________ #
 
@@ -922,6 +923,7 @@ def handle_chat(t,player,msg):
 		Notify(QtBind.text(gui_,cmbxEvtMessage_private),character_data['name']+" "+player + "\u00A0")
 	elif t == 9:
 		Notify(QtBind.text(gui_,cmbxEvtMessage_stall),"|`"+character_data['name']+"`| - [**Stall**] from `"+player+"`: "+msg)
+		Notify(QtBind.text(gui_,cmbxEvtMessage_stall),character_data['name']+" "+player + "\u00A0")
 	elif t == 4:
 		Notify(QtBind.text(gui_,cmbxEvtMessage_party),"|`"+character_data['name']+"`| - "+"[**Party**] `"+player+"`: "+msg)
 	elif t == 16:
