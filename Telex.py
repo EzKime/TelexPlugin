@@ -14,7 +14,7 @@ import phBotChat
 
 
 pName = 'Telex'
-pVersion = '0.8.1'
+pVersion = '0.8.2'
 #pUrl = 'https://raw.githubusercontent.com/JellyBitz/phBot-xPlugins/master/JellyDix.py'
 #video link  https://www.youtube.com/watch?v=LDNRgLq3Tt8
 pUrl = 'https://github.com/EzKime/TelexPlugin/blob/main/Telex.py'
@@ -27,7 +27,7 @@ pVersion = '0.5' Private Message Status Update
 pVersion = '0.6' Long messages now auto-split; 100+ chars can be sent easily.
 pVersion = '0.7' The error in the feedback has been corrected. Global messaging feature added..
 pVersion = '0.8' In private messages, you can copy and paste the sender and recipient names (e.g., Ryan Joymax) and then write your message. Currently, this is the fastest way to reply.
-pVersion = '0.8.1' In stall messages,"Private message can be sent." you can copy and paste the sender and recipient names (e.g., Ryan Joymax) and then write your message. Currently, this is the fastest way to reply.
+pVersion = '0.8.2' Party, Guild then write your message. usege Guild and Party same (Ryan Guild hi all).
 '''
 # ______________________________ Initializing ______________________________ #
 
@@ -58,8 +58,8 @@ QtBind.createLabel(gui,"Telegram Channels ID",6,10)
 tbxChannels = QtBind.createLineEdit(gui,"",6,25,80,19)
 tbxSeconds = QtBind.createLineEdit(gui,"",6,278,30,19)
 QtBind.createLabel(gui,"Write the time difference between your location and London in hours.\nIf it's the same, write 0.\nIf your time is behind, write the difference (e.g., -1).",40,272)
-lstChannels = QtBind.createList(gui,6,46,156,90)
-btnAddChannel = QtBind.createButton(gui,'btnAddChannel_clicked',"   Add   ",86,25)
+lstChannels = QtBind.createList(gui,6,46,154,85)
+btnAddChannel = QtBind.createButton(gui,'btnAddChannel_clicked',"   Add   ",86,23)
 btnChatId = QtBind.createButton(gui,'btnChatId_clicked',"   Show Chat ID   ",6,250)
 btnRemChannel = QtBind.createButton(gui,'btnRemChannel_clicked',"     Remove     ",45,135)
 
@@ -1378,8 +1378,8 @@ def on_telegram_fetch(data):
 
 
 # Called everytime a telegram message is sent to bot
-def send_message(receiver, message, send_func, channel_id):
-    if not receiver.strip():
+def send_message(receiver, message, send_func, channel_id, needs_receiver=False):
+    if needs_receiver and not receiver.strip():
         log("Recipient name empty, message failed to send.")
         return
     
@@ -1389,7 +1389,12 @@ def send_message(receiver, message, send_func, channel_id):
     for i in range(0, len(message), max_length):
         sn += 1
         part = message[i:i + max_length]
-        send_func(part) if receiver == 'Global' else send_func(receiver, part)
+        
+        if needs_receiver:
+            send_func(receiver, part)  # Private için
+        else:
+            send_func(part)  # Global, Party, Guild için
+
         time.sleep(sn)
         if not sent:
             all_sent = False
@@ -1407,12 +1412,22 @@ def on_telegram_message(msg, channel_id):
 
     if len(words) > 2 and words[0] == charName:
         receiver, message = words[1], words[2]
+
         if receiver == 'Global':
             send_message(receiver, message, phBotChat.Global, channel_id)
+        elif receiver == 'Party':
+            party = get_party()
+            if party:
+                send_message(receiver, message, phBotChat.Party, channel_id)
+            else:
+                Notify(channel_id, f"{no} You are not in party! {receiver}")
+        elif receiver == 'Guild':
+            send_message(receiver, message, phBotChat.Guild, channel_id)
         else:
-            send_message(receiver, message, phBotChat.Private, channel_id)
+            send_message(receiver, message, phBotChat.Private, channel_id, needs_receiver=True)
     else:
         log("Invalid message format: Must be at least two words!")
+
 
     msgLower = msg.lower()
     msgLower = msgLower[1:].rstrip()
