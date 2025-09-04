@@ -14,7 +14,7 @@ import phBotChat
 
 
 pName = 'Telex'
-pVersion = '0.8.2'
+pVersion = '0.8.2.1'
 #pUrl = 'https://raw.githubusercontent.com/JellyBitz/phBot-xPlugins/master/JellyDix.py'
 #video link  https://www.youtube.com/watch?v=LDNRgLq3Tt8
 pUrl = 'https://github.com/EzKime/TelexPlugin/blob/main/Telex.py'
@@ -1480,7 +1480,7 @@ def on_telegram_message(msg, channel_id):
 
 
 # Plugin loaded
-QtBind.createLabel(gui, '🐱‍👤 By <s>EzKime</s> v.{}</s>'.format(pVersion), 610, 297)
+QtBind.createLabel(gui, '🐱‍👤 By <s>EzKime</s> v.{}</s>'.format(pVersion), 600, 297)
 log('Plugin: '+pName+' v'+pVersion+' successfully loaded')
 
 if not os.path.exists(getPath()):
