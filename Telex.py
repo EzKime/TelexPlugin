@@ -27,7 +27,7 @@ pVersion = '0.5' Private Message Status Update
 pVersion = '0.6' Long messages now auto-split; 100+ chars can be sent easily.
 pVersion = '0.7' The error in the feedback has been corrected. Global messaging feature added..
 pVersion = '0.8' In private messages, you can copy and paste the sender and recipient names (e.g., Ryan Joymax) and then write your message. Currently, this is the fastest way to reply.
-pVersion = '0.8.2' Party, Guild then write your message. usege Guild and Party same (Ryan Guild hi all).
+pVersion = '0.8.2.1' Party, Guild, Union then write your message. usege Guild and Party same (Ryan Guild hi all).
 '''
 # ______________________________ Initializing ______________________________ #
 
@@ -926,12 +926,15 @@ def handle_chat(t,player,msg):
 		Notify(QtBind.text(gui_,cmbxEvtMessage_stall),character_data['name']+" "+player + "\u00A0")
 	elif t == 4:
 		Notify(QtBind.text(gui_,cmbxEvtMessage_party),"|`"+character_data['name']+"`| - "+"[**Party**] `"+player+"`: "+msg)
+		Notify(QtBind.text(gui_,cmbxEvtMessage_party),character_data['name']+" "+player + "\u00A0")
 	elif t == 16:
 		Notify(QtBind.text(gui_,cmbxEvtMessage_academy),"|`"+character_data['name']+"`| - "+"[**Academy**] `"+player+"`: "+msg)
 	elif t == 5:
 		Notify(QtBind.text(gui_,cmbxEvtMessage_guild),"[**Guild**] `"+player+"`: "+msg)
+		Notify(QtBind.text(gui_,cmbxEvtMessage_guild),character_data['name']+" "+player + "\u00A0")
 	elif t == 11:
 		Notify(QtBind.text(gui_,cmbxEvtMessage_union),"[**Union**] `"+player+"`: "+msg)
+		Notify(QtBind.text(gui_,cmbxEvtMessage_union),character_data['name']+" "+player + "\u00A0")
 	elif t == 6:
 		if QtBind.isChecked(gui_,cbxEvtMessage_global_filter):
 			searchMessage = QtBind.text(gui_,tbxEvtMessage_global_filter)
@@ -1423,6 +1426,8 @@ def on_telegram_message(msg, channel_id):
                 Notify(channel_id, f"{no} You are not in party! {receiver}")
         elif receiver == 'Guild':
             send_message(receiver, message, phBotChat.Guild, channel_id)
+        elif receiver == 'Union':
+            send_message(receiver, message, phBotChat.Union, channel_id)
         else:
             send_message(receiver, message, phBotChat.Private, channel_id, needs_receiver=True)
     else:
