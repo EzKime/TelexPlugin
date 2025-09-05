@@ -28,7 +28,7 @@ pVersion = '0.6' Long messages now auto-split; 100+ chars can be sent easily.
 pVersion = '0.7' The error in the feedback has been corrected. Global messaging feature added..
 pVersion = '0.8' In private messages, you can copy and paste the sender and recipient names (e.g., Ryan Joymax) and then write your message. Currently, this is the fastest way to reply.
 pVersion = '0.8.2.1' Party, Guild, Union then write your message. usege Guild and Party same (Ryan Guild hi all).
-pVersion = '0.8.3' bugfix.
+pVersion = '0.8.3' Bugfix.
 '''
 # ______________________________ Initializing ______________________________ #
 
@@ -57,8 +57,6 @@ gui = QtBind.init(__name__,pName)
 
 QtBind.createLabel(gui,"Telegram Channels ID",6,10)
 tbxChannels = QtBind.createLineEdit(gui,"",6,25,80,19)
-tbxSeconds = QtBind.createLineEdit(gui,"",6,278,30,19)
-QtBind.createLabel(gui,"Write the time difference between your location and London in hours.\nIf it's the same, write 0.\nIf your time is behind, write the difference (e.g., -1).",40,272)
 lstChannels = QtBind.createList(gui,6,46,154,85)
 btnAddChannel = QtBind.createButton(gui,'btnAddChannel_clicked',"   Add   ",86,23)
 btnChatId = QtBind.createButton(gui,'btnChatId_clicked',"   Show Chat ID   ",6,250)
@@ -279,7 +277,6 @@ def getConfig():
 def loadDefaultConfig():
 	# Clear data
 	QtBind.setText(gui,tbxChannels,"")
-	QtBind.setText(gui,tbxSeconds,"")
 	QtBind.clear(gui,lstChannels)
 
 	QtBind.setChecked(gui,cbxAddTimestamp,False)
@@ -325,7 +322,6 @@ def saveConfigs():
 		data["TelegramInteractionGuildID"] = QtBind.text(gui,tbxTelegram_guild_id)
 
 		data["Token"] = QtBind.text(gui,tbxToken)
-		data["Seconds"] = QtBind.text(gui,tbxSeconds)
 		
 		# Save triggers from tabs
 		triggers = {}
@@ -390,8 +386,7 @@ def loadConfigs():
 
 			if "Token" in data:
 				QtBind.setText(gui,tbxToken,data["Token"])
-			if "Seconds" in data:
-				QtBind.setText(gui,tbxSeconds,data["Seconds"])
+
 
 			# Load triggers
 			if "Triggers" in data:
