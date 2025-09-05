@@ -1,6 +1,6 @@
 from phBot import *
 import QtBind
-from datetime import datetime
+from datetime import datetime, timezone
 from threading import Timer
 import urllib.error
 import urllib.request
@@ -14,7 +14,7 @@ import phBotChat
 
 
 pName = 'Telex'
-pVersion = '0.8.2.1'
+pVersion = '0.8.3'
 #pUrl = 'https://raw.githubusercontent.com/JellyBitz/phBot-xPlugins/master/JellyDix.py'
 #video link  https://www.youtube.com/watch?v=LDNRgLq3Tt8
 pUrl = 'https://github.com/EzKime/TelexPlugin/blob/main/Telex.py'
@@ -28,6 +28,7 @@ pVersion = '0.6' Long messages now auto-split; 100+ chars can be sent easily.
 pVersion = '0.7' The error in the feedback has been corrected. Global messaging feature added..
 pVersion = '0.8' In private messages, you can copy and paste the sender and recipient names (e.g., Ryan Joymax) and then write your message. Currently, this is the fastest way to reply.
 pVersion = '0.8.2.1' Party, Guild, Union then write your message. usege Guild and Party same (Ryan Guild hi all).
+pVersion = '0.8.3' bugfix.
 '''
 # ______________________________ Initializing ______________________________ #
 
@@ -1354,8 +1355,6 @@ def on_telegram_fetch(data):
     if not data:
         return
     global update_id
-    hours = int(QtBind.text(gui, tbxSeconds))
-    seconds = hours * 60 * 60
     channel_id = QtBind.text(gui, tbxTelegram_guild_id)
     mesajId = data.get('update_id')
 
@@ -1364,21 +1363,24 @@ def on_telegram_fetch(data):
         if not message:
             return
 
-        telegram_timestamp = message['date'] + seconds
-        telegramTime = datetime.utcfromtimestamp(telegram_timestamp)
+        # Telegram UTC timestamp
+        telegram_timestamp = message['date']
+        telegramTime = datetime.fromtimestamp(telegram_timestamp, tz=timezone.utc)
 
-        pcTime = datetime.now()
+        # PC zamanını UTC olarak al
+        pcTime = datetime.now(timezone.utc)
+
+        # Farkı otomatik hesapla
         time_difference = pcTime - telegramTime
         time_difference_seconds = time_difference.total_seconds()
 
         if time_difference_seconds <= 10 and (update_id is None or mesajId > update_id):
             update_id = mesajId
             text = message.get('text', '')
-
             on_telegram_message(text, channel_id)
+
     except Exception as ex:
         log(f"Plugin: Error processing fetched message [{str(ex)}]")
-
 
 # Called everytime a telegram message is sent to bot
 def send_message(receiver, message, send_func, channel_id, needs_receiver=False):
