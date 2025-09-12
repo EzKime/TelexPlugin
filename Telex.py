@@ -29,6 +29,7 @@ pVersion = '0.7' The error in the feedback has been corrected. Global messaging 
 pVersion = '0.8' In private messages, you can copy and paste the sender and recipient names (e.g., Ryan Joymax) and then write your message. Currently, this is the fastest way to reply.
 pVersion = '0.8.2.1' Party, Guild, Union then write your message. usege Guild and Party same (Ryan Guild hi all).
 pVersion = '0.8.3' Bugfix.
+pVersion = '0.8.4' The issue of our own messages being sent as notifications has been fixed.
 '''
 # ______________________________ Initializing ______________________________ #
 
