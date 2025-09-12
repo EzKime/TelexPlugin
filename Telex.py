@@ -14,7 +14,7 @@ import phBotChat
 
 
 pName = 'Telex'
-pVersion = '0.8.3'
+pVersion = '0.8.4'
 #pUrl = 'https://raw.githubusercontent.com/JellyBitz/phBot-xPlugins/master/JellyDix.py'
 #video link  https://www.youtube.com/watch?v=LDNRgLq3Tt8
 pUrl = 'https://github.com/EzKime/TelexPlugin/blob/main/Telex.py'
@@ -896,66 +896,67 @@ def disconnected():
 
 # All chat messages received are sent to this function
 def handle_chat(t,player,msg):
-	# Check if contains item linking
-	itemLink = re.search('([0-9]*)',msg)
-	if itemLink:
-		global chat_data
-		links = itemLink.groups()
-		for i in range(len(links)):
-			uid = int(links[i])
-			if uid in chat_data:
-				item = chat_data[uid]
-				race = getRaceText(item['servername'])
-				genre = getGenreText(item['servername'])
-				sox = getSoXText(item['servername'],item['level'])
-				msg = msg.replace(''+links[i]+'','`< '+item['name']+(' '+race if race else '')+(' '+genre if genre else '')+(' '+sox if sox else '')+' >`')
-			else:
-				msg = msg.replace(''+links[i]+'','`< '+links[i]+' >`')
-	# Check message type
-	if t == 1:
-		Notify(QtBind.text(gui_,cmbxEvtMessage_all),"|`"+character_data['name']+"`| - [**General**] from `"+player+"`: "+msg)
-	elif t == 2:
-		Notify(QtBind.text(gui_,cmbxEvtMessage_private),"|`"+character_data['name']+"`| - [**Private**] from `"+player+"`: "+msg)
-		Notify(QtBind.text(gui_,cmbxEvtMessage_private),character_data['name']+" "+player + "\u00A0")
-	elif t == 9:
-		Notify(QtBind.text(gui_,cmbxEvtMessage_stall),"|`"+character_data['name']+"`| - [**Stall**] from `"+player+"`: "+msg)
-		Notify(QtBind.text(gui_,cmbxEvtMessage_stall),character_data['name']+" "+player + "\u00A0")
-	elif t == 4:
-		Notify(QtBind.text(gui_,cmbxEvtMessage_party),"|`"+character_data['name']+"`| - "+"[**Party**] `"+player+"`: "+msg)
-		Notify(QtBind.text(gui_,cmbxEvtMessage_party),character_data['name']+" "+player + "\u00A0")
-	elif t == 16:
-		Notify(QtBind.text(gui_,cmbxEvtMessage_academy),"|`"+character_data['name']+"`| - "+"[**Academy**] `"+player+"`: "+msg)
-	elif t == 5:
-		Notify(QtBind.text(gui_,cmbxEvtMessage_guild),"[**Guild**] `"+player+"`: "+msg)
-		Notify(QtBind.text(gui_,cmbxEvtMessage_guild),character_data['name']+" "+player + "\u00A0")
-	elif t == 11:
-		Notify(QtBind.text(gui_,cmbxEvtMessage_union),"[**Union**] `"+player+"`: "+msg)
-		Notify(QtBind.text(gui_,cmbxEvtMessage_union),character_data['name']+" "+player + "\u00A0")
-	elif t == 6:
-		if QtBind.isChecked(gui_,cbxEvtMessage_global_filter):
-			searchMessage = QtBind.text(gui_,tbxEvtMessage_global_filter)
-			if searchMessage:
-				try:
-					if re.search(searchMessage,msg):
-						Notify(QtBind.text(gui_,cmbxEvtMessage_global),"[**Global**] `"+player+"`: "+msg,colour=0xffeb3b)
-				except Exception as ex:
-					log("Plugin: Error at regex ["+str(ex)+"]")
-		else:
-			Notify(QtBind.text(gui_,cmbxEvtMessage_global),"[**Global**] `"+player+"`: "+msg,colour=0xffeb3b)
-	elif t == 7:
-		if QtBind.isChecked(gui_,cbxEvtMessage_notice_filter):
-			searchMessage = QtBind.text(gui_,tbxEvtMessage_notice_filter)
-			if searchMessage:
-				try:
-					if re.search(searchMessage,msg):
-						Notify(QtBind.text(gui_,cmbxEvtMessage_notice),"[**Notice**] : "+msg)
-				except Exception as ex:
-					log("Plugin: Error at regex ["+str(ex)+"]")
-		else:
-			Notify(QtBind.text(gui_,cmbxEvtMessage_notice),"[**Notice**] : "+msg)
-	elif t == 3:
-		Notify(QtBind.text(gui_,cmbxEvtMessage_gm),"[**GameMaster**] `"+player+"`: "+msg)
-
+    if character_data['name'] != player:
+        # Check if contains item linking
+        itemLink = re.search('([0-9]*)',msg)
+        if itemLink:
+            global chat_data
+            links = itemLink.groups()
+            for i in range(len(links)):
+                uid = int(links[i])
+                if uid in chat_data:
+                    item = chat_data[uid]
+                    race = getRaceText(item['servername'])
+                    genre = getGenreText(item['servername'])
+                    sox = getSoXText(item['servername'],item['level'])
+                    msg = msg.replace(''+links[i]+'','`< '+item['name']+(' '+race if race else '')+(' '+genre if genre else '')+(' '+sox if sox else '')+' >`')
+                else:
+                    msg = msg.replace(''+links[i]+'','`< '+links[i]+' >`')
+        # Check message type
+        if t == 1:
+            Notify(QtBind.text(gui_,cmbxEvtMessage_all),"|`"+character_data['name']+"`| - [**General**] from `"+player+"`: "+msg)
+        elif t == 2:
+            Notify(QtBind.text(gui_,cmbxEvtMessage_private),"|`"+character_data['name']+"`| - [**Private**] from `"+player+"`: "+msg)
+            Notify(QtBind.text(gui_,cmbxEvtMessage_private),character_data['name']+" "+player + "\u00A0")
+        elif t == 9:
+            Notify(QtBind.text(gui_,cmbxEvtMessage_stall),"|`"+character_data['name']+"`| - [**Stall**] from `"+player+"`: "+msg)
+            Notify(QtBind.text(gui_,cmbxEvtMessage_stall),character_data['name']+" "+player + "\u00A0")
+        elif t == 4:
+            Notify(QtBind.text(gui_,cmbxEvtMessage_party),"|`"+character_data['name']+"`| - "+"[**Party**] `"+player+"`: "+msg)
+            Notify(QtBind.text(gui_,cmbxEvtMessage_party),character_data['name']+" "+player + "\u00A0")
+        elif t == 16:
+            Notify(QtBind.text(gui_,cmbxEvtMessage_academy),"|`"+character_data['name']+"`| - "+"[**Academy**] `"+player+"`: "+msg)
+        elif t == 5:
+            Notify(QtBind.text(gui_,cmbxEvtMessage_guild),"[**Guild**] `"+player+"`: "+msg)
+            Notify(QtBind.text(gui_,cmbxEvtMessage_guild),character_data['name']+" "+player + "\u00A0")
+        elif t == 11:
+            Notify(QtBind.text(gui_,cmbxEvtMessage_union),"[**Union**] `"+player+"`: "+msg)
+            Notify(QtBind.text(gui_,cmbxEvtMessage_union),character_data['name']+" "+player + "\u00A0")
+        elif t == 6:
+            if QtBind.isChecked(gui_,cbxEvtMessage_global_filter):
+                searchMessage = QtBind.text(gui_,tbxEvtMessage_global_filter)
+                if searchMessage:
+                    try:
+                        if re.search(searchMessage,msg):
+                            Notify(QtBind.text(gui_,cmbxEvtMessage_global),"[**Global**] `"+player+"`: "+msg,colour=0xffeb3b)
+                    except Exception as ex:
+                        log("Plugin: Error at regex ["+str(ex)+"]")
+            else:
+                Notify(QtBind.text(gui_,cmbxEvtMessage_global),"[**Global**] `"+player+"`: "+msg,colour=0xffeb3b)
+        elif t == 7:
+            if QtBind.isChecked(gui_,cbxEvtMessage_notice_filter):
+                searchMessage = QtBind.text(gui_,tbxEvtMessage_notice_filter)
+                if searchMessage:
+                    try:
+                        if re.search(searchMessage,msg):
+                            Notify(QtBind.text(gui_,cmbxEvtMessage_notice),"[**Notice**] : "+msg)
+                    except Exception as ex:
+                        log("Plugin: Error at regex ["+str(ex)+"]")
+            else:
+                Notify(QtBind.text(gui_,cmbxEvtMessage_notice),"[**Notice**] : "+msg)
+        elif t == 3:
+            Notify(QtBind.text(gui_,cmbxEvtMessage_gm),"[**GameMaster**] `"+player+"`: "+msg)
+    
 # Called for specific events. data field will always be a string.
 def handle_event(t, data):
 	# Filter events
